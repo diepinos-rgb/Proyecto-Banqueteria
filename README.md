@@ -67,3 +67,5 @@ Instalación
 1. Clonar o descargar el repositorio:
    ```bash
    git clone <URL_DEL_REPOSOTORIO>
+   https://www.canva.com/design/DAHYr_L-CO8/4_HXfSYwv9y0gE5gHBy1FA/edit
+   https://trello.com/b/jZLDvuYH

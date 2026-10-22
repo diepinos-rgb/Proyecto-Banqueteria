@@ -1,4 +1,4 @@
-# Banquetería - Paolicias.Sweet 🍰🍽️
+# Banquetería - Paolicias.Sweet 
 
 Aplicación móvil nativa para Android desarrollada como parte de la entrega técnica del proyecto de Banquetería y Pastelería **Paolicias.Sweet**. 
 La aplicación permite a los usuarios explorar el catálogo de servicios de catering y repostería, registrarse, iniciar sesión y generar cotizaciones personalizadas
@@ -8,8 +8,9 @@ de eventos con validaciones en tiempo real y persistencia de datos local.
 
 Integrantes del Equipo
 
-Diego Pino
 Andrea Mascareño
+
+Diego Pino
 
 ---
 

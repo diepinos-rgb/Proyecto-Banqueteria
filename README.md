@@ -66,6 +66,6 @@ Dispositivo físico o emulador con servicios de cámara habilitados.
 Instalación
 1. Clonar o descargar el repositorio:
    ```bash
-   git clone <URL_DEL_REPOSOTORIO>
+   git clone <https://github.com/diepinos-rgb/Proyecto-Banqueteria>
    https://www.canva.com/design/DAHYr_L-CO8/4_HXfSYwv9y0gE5gHBy1FA/edit
    https://trello.com/b/jZLDvuYH

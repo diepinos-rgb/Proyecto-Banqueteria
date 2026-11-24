@@ -64,9 +64,9 @@ SDK Mínimo: API 26 (Android 8.0 Oreo) o superior.
 Dispositivo físico o emulador con servicios de cámara habilitados.
 
 Instalación
-1. Clonar o descargar el repositorio:
+1. Clonar o descargar el repositorio y despligue en aws con ec2:
    ```bash
    git clone <https://github.com/diepinos-rgb/Proyecto-Banqueteria>
    https://www.canva.com/design/DAHYr_L-CO8/4_HXfSYwv9y0gE5gHBy1FA/edit
    https://trello.com/b/jZLDvuYH
-   http://98.84.141.134:9000](http://98.84.141.134:9000
+   http://98.84.141.134:9000

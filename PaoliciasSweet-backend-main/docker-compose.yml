@@ -1,0 +1,73 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: paoliciassweet-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ms-usuarios:
+    build:
+      context: ./usuarios
+      dockerfile: Dockerfile
+    container_name: paoliciassweet-usuarios
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: 8081
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/bd_usuarios?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "8081:8081"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  reservas:
+    build:
+      context: ./reservas
+      dockerfile: Dockerfile
+    container_name: paoliciassweet-reservas
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: 8082
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/bd_reservas?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "8082:8082"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  integracion:
+    build:
+      context: ./integracion
+      dockerfile: Dockerfile
+    container_name: paoliciassweet-gateway
+    restart: unless-stopped
+    environment:
+      SERVER_PORT: 9000
+      SPRING_CLOUD_GATEWAY_ROUTES_0_ID: ms-usuarios
+      SPRING_CLOUD_GATEWAY_ROUTES_0_URI: http://ms-usuarios:8081
+      SPRING_CLOUD_GATEWAY_ROUTES_0_PREDICATES_0: Path=/api/usuarios/**
+      SPRING_CLOUD_GATEWAY_ROUTES_1_ID: ms-reservas
+      SPRING_CLOUD_GATEWAY_ROUTES_1_URI: http://reservas:8082
+      SPRING_CLOUD_GATEWAY_ROUTES_1_PREDICATES_0: Path=/api/reservaciones/**
+    ports:
+      - "9000:9000"
+    depends_on:
+      - ms-usuarios
+      - reservas
+
+volumes:
+  mysql_data:

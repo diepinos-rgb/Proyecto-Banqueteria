@@ -1,7 +1,6 @@
 package com.example.appbanqueteria.ui.screen
 
 import android.widget.Toast
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -36,7 +35,8 @@ import com.example.appbanqueteria.ui.viewmodel.LoginViewModel
 @Composable
 fun Login(
     onNavigateToRegister: () -> Unit,
-    onLoginSuccess: (String) -> Unit,
+    onLoginSuccess: (String, String, String) -> Unit,
+    onNavigateToAdminLogin: () -> Unit = {},
     viewModel: LoginViewModel = viewModel()
 ) {
     val state = viewModel.uiState
@@ -48,7 +48,7 @@ fun Login(
     Scaffold(
         topBar = { Header("INICIAR SESIÓN") },
         bottomBar = { Footer() },
-        containerColor = colorGuinda // Aplica el color guinda de fondo a toda la pantalla
+        containerColor = colorGuinda
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -58,7 +58,6 @@ fun Login(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Título en blanco para contraste
             Text(
                 text = "L o g i n",
                 style = MaterialTheme.typography.headlineMedium,
@@ -114,7 +113,7 @@ fun Login(
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = viewModel.errorMessage!!,
-                    color = Color(0xFFFFCDD2), // Rojo claro/rosado para lectura legible sobre fondo oscuro
+                    color = Color(0xFFFFCDD2),
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
@@ -124,9 +123,9 @@ fun Login(
             // Botón de Ingresar (Blanco con texto Guinda)
             Button(
                 onClick = {
-                    viewModel.onLoginClick(context) { nombreUsuario ->
+                    viewModel.onLoginClick(context) { nombreUsuario, telefonoUsuario ->
                         Toast.makeText(context, "¡Bienvenido de nuevo!", Toast.LENGTH_SHORT).show()
-                        onLoginSuccess(nombreUsuario)
+                        onLoginSuccess(nombreUsuario, state.email.trim(), telefonoUsuario)
                     }
                 },
                 modifier = Modifier
@@ -160,6 +159,26 @@ fun Login(
                 Text(
                     text = "Ir a Registro",
                     fontWeight = FontWeight.Medium
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Botón para ir al Login exclusivo de Administrador (caja blanca igual que Ingresar)
+            Button(
+                onClick = { onNavigateToAdminLogin() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.White,
+                    contentColor = colorGuinda
+                )
+            ) {
+                Text(
+                    text = "Ingresar como administrador",
+                    fontWeight = FontWeight.Bold
                 )
             }
         }

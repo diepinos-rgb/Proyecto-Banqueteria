@@ -12,7 +12,7 @@ object PasteleriaRepository {
                 description = "Tres capas de bizcocho húmedo con ganache de chocolate belga 70%, relleno de crema de cacao y decoración artesanal. Personalizable con mensaje y diseño.",
                 pricePerPerson = 2800,
                 minPersons = 10,
-                maxPersons = 60,
+                maxPersons = 100,
                 tags = listOf("Personalizable", "Sin gluten disponible"),
                 allergens = "Gluten, Lácteos, Huevo",
                 imageRes = R.drawable.torta_belga
@@ -23,7 +23,7 @@ object PasteleriaRepository {
                 description = "Clásica torta tres leches empapada en mezcla de leches, coronada con crema chantilly artesanal y frutas frescas de temporada.",
                 pricePerPerson = 2900,
                 minPersons = 10,
-                maxPersons = 60,
+                maxPersons = 100,
                 tags = listOf("Temporada", "Premium"),
                 allergens = "Gluten, Lácteos, Huevo",
                 imageRes = R.drawable.torta_3leches

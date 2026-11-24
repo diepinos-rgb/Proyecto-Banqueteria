@@ -1,17 +1,11 @@
 package com.example.appbanqueteria.ui.screen
 
-import android.Manifest
 import android.content.Context
-import android.content.pm.PackageManager
-import android.graphics.Bitmap
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -25,15 +19,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.appbanqueteria.data.local.CateringRepository
 import com.example.appbanqueteria.data.local.PasteleriaRepository
+import com.example.appbanqueteria.ui.viewmodel.ReservacionViewModel
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -45,7 +38,8 @@ import java.util.TimeZone
 fun ConfigurarEvento(
     servicioId: String?,
     onBack: () -> Unit = {},
-    onVerCotizacion: (String, String, String, Int) -> Unit = { _, _, _, _ -> }
+    onVerCotizacion: (String, String, String, Int, String, String) -> Unit = { _, _, _, _, _, _ -> },
+    reservacionViewModel: ReservacionViewModel = viewModel()
 ) {
     val context = LocalContext.current
 
@@ -64,48 +58,39 @@ fun ConfigurarEvento(
         ?: itemPasteleria?.minPersons?.toFloat()
         ?: 10f
 
-    val maxPersonas = itemCatering?.maxPersonas
-        ?: itemPasteleria?.maxPersons?.toFloat()
-        ?: 100f
+    val personasInicial = (kotlin.math.round(minPersonas / 10f) * 10f).coerceIn(10f, 100f)
 
+    var tipoCotizacionSeleccionado by remember { mutableStateOf("Persona natural") }
     var fechaEvento by remember { mutableStateOf("") }
     var mostrarDatePicker by remember { mutableStateOf(false) }
     var horaSeleccionada by remember { mutableStateOf("13:00") }
-    var cantidadPersonas by remember { mutableFloatStateOf(minPersonas) }
+    var cantidadPersonas by remember { mutableFloatStateOf(personasInicial) }
     var observaciones by remember { mutableStateOf("") }
 
-    // --- RECURSO NATIVO: CÁMARA Y PERMISOS ---
-    var fotoCamaraBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    // Lista de horas ya reservadas obtenida desde Spring Boot vía ViewModel
+    val horasOcupadas by reservacionViewModel.horasOcupadas.collectAsState()
 
-    // 1. Launcher para capturar la foto
-    val cameraLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicturePreview()
-    ) { bitmap: Bitmap? ->
-        if (bitmap != null) {
-            fotoCamaraBitmap = bitmap
-            vibrar(context, 150)
-            Toast.makeText(context, "Foto tomada con éxito", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    // 2. Launcher para solicitar el permiso de cámara al usuario
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted: Boolean ->
-        if (isGranted) {
-            try {
-                cameraLauncher.launch(null)
-            } catch (e: Exception) {
-                Toast.makeText(context, "Error al abrir la cámara", Toast.LENGTH_SHORT).show()
-            }
-        } else {
-            Toast.makeText(context, "Debes aceptar el permiso para usar la cámara", Toast.LENGTH_LONG).show()
-        }
-    }
-
+    val tiposCotizacion = listOf("Persona natural", "Empresa")
     val horarios = listOf("09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00")
     val restricciones = listOf("Vegetariano", "Vegano", "Sin gluten / Celiaquía", "Sin lácteos", "Sin mariscos", "Sin frutos secos", "Menú halal", "Bajo sodio (hipertenso)")
     val restriccionesSeleccionadas = remember { mutableStateListOf<String>() }
+
+    // Consulta en el servidor cada vez que cambia la fecha seleccionada
+    LaunchedEffect(fechaEvento) {
+        if (fechaEvento.isNotBlank()) {
+            val fechaFormatoBD = fechaEvento.replace("/", "-")
+            reservacionViewModel.cargarHorasOcupadasPorFecha(fechaFormatoBD)
+        } else {
+            reservacionViewModel.cargarHorasOcupadasPorFecha("")
+        }
+    }
+
+    // Si la hora seleccionada está ocupada al llegar la respuesta del servidor, elige la primera libre
+    LaunchedEffect(horasOcupadas) {
+        if (horaSeleccionada in horasOcupadas) {
+            horaSeleccionada = horarios.firstOrNull { it !in horasOcupadas } ?: ""
+        }
+    }
 
     // --- DIÁLOGO DE CALENDARIO COMPATIBLE DESDE API 23 ---
     if (mostrarDatePicker) {
@@ -204,6 +189,39 @@ fun ConfigurarEvento(
                 }
             }
 
+            // Tipo de Cotización
+            Column {
+                Text("TIPO DE COTIZACIÓN", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
+                Spacer(modifier = Modifier.height(8.dp))
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    tiposCotizacion.forEach { tipo ->
+                        val selected = tipo == tipoCotizacionSeleccionado
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(if (selected) Color(0xFF7A1C3B) else Color.White)
+                                .border(
+                                    1.dp,
+                                    if (selected) Color(0xFF7A1C3B) else Color(0xFFE0E0E0),
+                                    RoundedCornerShape(10.dp)
+                                )
+                                .clickable { tipoCotizacionSeleccionado = tipo }
+                                .padding(horizontal = 14.dp, vertical = 8.dp)
+                        ) {
+                            Text(
+                                text = tipo,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = if (selected) Color.White else Color.Black
+                            )
+                        }
+                    }
+                }
+            }
+
             // Fecha con Selector de Calendario
             Column {
                 Text("FECHA DEL EVENTO", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
@@ -228,7 +246,7 @@ fun ConfigurarEvento(
                 }
             }
 
-            // Horario
+            // Horario (bloquea visualmente las horas ya reservadas en esa fecha)
             Column {
                 Text("HORARIO DE INICIO", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
                 Spacer(modifier = Modifier.height(8.dp))
@@ -237,27 +255,49 @@ fun ConfigurarEvento(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     horarios.forEach { hora ->
-                        val selected = hora == horaSeleccionada
+                        val estaOcupada = hora in horasOcupadas
+                        val selected = !estaOcupada && (hora == horaSeleccionada)
+
+                        val fondoChip = when {
+                            estaOcupada -> Color(0xFFEAEAEA)
+                            selected -> Color(0xFF7A1C3B)
+                            else -> Color.White
+                        }
+
+                        val bordeChip = when {
+                            estaOcupada -> Color(0xFFD0D0D0)
+                            selected -> Color(0xFF7A1C3B)
+                            else -> Color(0xFFE0E0E0)
+                        }
+
+                        val colorTexto = when {
+                            estaOcupada -> Color.Gray
+                            selected -> Color.White
+                            else -> Color.Black
+                        }
+
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(10.dp))
-                                .background(if (selected) Color(0xFF7A1C3B) else Color.White)
-                                .border(1.dp, if (selected) Color(0xFF7A1C3B) else Color(0xFFE0E0E0), RoundedCornerShape(10.dp))
-                                .clickable { horaSeleccionada = hora }
+                                .background(fondoChip)
+                                .border(1.dp, bordeChip, RoundedCornerShape(10.dp))
+                                .clickable(enabled = !estaOcupada) {
+                                    horaSeleccionada = hora
+                                }
                                 .padding(horizontal = 14.dp, vertical = 8.dp)
                         ) {
                             Text(
-                                text = hora,
+                                text = if (estaOcupada) "$hora (Reservado)" else hora,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Medium,
-                                color = if (selected) Color.White else Color.Black
+                                color = colorTexto
                             )
                         }
                     }
                 }
             }
 
-            // Cantidad de personas
+            // Cantidad de personas (intervalos de 10 en 10, de 10 a 100)
             Column {
                 Text("NÚMERO DE PERSONAS", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
                 Spacer(modifier = Modifier.height(6.dp))
@@ -271,64 +311,16 @@ fun ConfigurarEvento(
                 }
                 Slider(
                     value = cantidadPersonas,
-                    onValueChange = { cantidadPersonas = it },
-                    valueRange = minPersonas..maxPersonas,
-                    colors = SliderDefaults.colors(thumbColor = Color(0xFF7A1C3B), activeTrackColor = Color(0xFF7A1C3B))
+                    onValueChange = { valor ->
+                        cantidadPersonas = (kotlin.math.round(valor / 10f) * 10f)
+                    },
+                    valueRange = 10f..100f,
+                    steps = 8,
+                    colors = SliderDefaults.colors(
+                        thumbColor = Color(0xFF7A1C3B),
+                        activeTrackColor = Color(0xFF7A1C3B)
+                    )
                 )
-            }
-
-            // --- BOTÓN CÁMARA NATIVA CON VERIFICACIÓN DE PERMISOS ---
-            Column {
-                Text("FOTO DE REFERENCIA", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
-                Spacer(modifier = Modifier.height(6.dp))
-
-                if (fotoCamaraBitmap != null) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(180.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .border(1.dp, Color(0xFF7A1C3B), RoundedCornerShape(12.dp))
-                    ) {
-                        Image(
-                            bitmap = fotoCamaraBitmap!!.asImageBitmap(),
-                            contentDescription = "Foto capturada",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                        IconButton(
-                            onClick = { fotoCamaraBitmap = null },
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .padding(8.dp)
-                                .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(20.dp))
-                        ) {
-                            Text("✕", color = Color.White, fontSize = 12.sp)
-                        }
-                    }
-                } else {
-                    Button(
-                        onClick = {
-                            val estadoPermiso = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA)
-                            if (estadoPermiso == PackageManager.PERMISSION_GRANTED) {
-                                try {
-                                    cameraLauncher.launch(null)
-                                } catch (e: Exception) {
-                                    Toast.makeText(context, "Error al abrir cámara en el emulador", Toast.LENGTH_SHORT).show()
-                                }
-                            } else {
-                                permissionLauncher.launch(Manifest.permission.CAMERA)
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF5D4037)),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp)
-                    ) {
-                        Text("Abrir Cámara", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                    }
-                }
             }
 
             // Restricciones Alimentarias
@@ -383,14 +375,29 @@ fun ConfigurarEvento(
                         Toast.makeText(context, "Por favor selecciona una fecha para el evento", Toast.LENGTH_SHORT).show()
                         return@Button
                     }
+                    if (horaSeleccionada.isBlank() || horaSeleccionada in horasOcupadas) {
+                        Toast.makeText(context, "Selecciona un horario disponible para esta fecha", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
                     vibrar(context, 300)
                     val fechaValida = fechaEvento.replace("/", "-")
                     val idFinal = servicioId ?: "1"
+
+                    val restriccionesTexto = if (restriccionesSeleccionadas.isNotEmpty()) {
+                        "Alérgenos/Restricciones: ${restriccionesSeleccionadas.joinToString(", ")}"
+                    } else ""
+                    val notasTexto = observaciones.trim()
+                    val observacionesCompletas = listOf(restriccionesTexto, notasTexto)
+                        .filter { it.isNotBlank() }
+                        .joinToString(" | ")
+
                     onVerCotizacion(
                         idFinal,
                         fechaValida,
                         horaSeleccionada,
-                        cantidadPersonas.toInt()
+                        cantidadPersonas.toInt(),
+                        tipoCotizacionSeleccionado,
+                        observacionesCompletas
                     )
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7A1C3B)),

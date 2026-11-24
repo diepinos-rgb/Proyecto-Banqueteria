@@ -8,8 +8,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
@@ -52,6 +54,7 @@ fun Register(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .verticalScroll(rememberScrollState())
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
@@ -92,6 +95,43 @@ fun Register(
                 label = { Text("Correo Electrónico") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = Color.White,
+                    focusedTextColor = Color.Black,
+                    unfocusedTextColor = Color.Black,
+                    focusedLabelColor = Color.White,
+                    unfocusedLabelColor = Color(0xFFE0E0E0)
+                )
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Campo Teléfono con prefijo +569, guía tenue y tope de 8 dígitos
+            OutlinedTextField(
+                value = state.numberPhone,
+                onValueChange = { input ->
+                    val soloNumeros = input.filter { it.isDigit() }.take(8)
+                    viewModel.onNumberPhoneChanged(soloNumeros)
+                },
+                label = { Text("Teléfono") },
+                prefix = {
+                    Text(
+                        text = "+569 ",
+                        fontWeight = FontWeight.Bold,
+                        color = Color.DarkGray
+                    )
+                },
+                placeholder = {
+                    Text(
+                        text = "12345678",
+                        color = Color.Gray
+                    )
+                },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(

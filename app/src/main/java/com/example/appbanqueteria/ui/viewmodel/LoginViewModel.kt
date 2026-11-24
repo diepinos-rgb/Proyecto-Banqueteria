@@ -27,7 +27,7 @@ class LoginViewModel : ViewModel() {
         errorMessage = null
     }
 
-    fun onLoginClick(context: Context, onSuccess: (String) -> Unit) {
+    fun onLoginClick(context: Context, onSuccess: (String, String) -> Unit) {
         val email = uiState.email.trim()
         val password = uiState.password
 
@@ -38,11 +38,11 @@ class LoginViewModel : ViewModel() {
 
         viewModelScope.launch {
             val db = AppDatabase.getDatabase(context)
-            val user = db.usuarioDao().getUserByEmail(email)
+            val user = db.usuarioDao().getUserByEmailAndRol(email, "CLIENTE")
 
             if (user != null && user.password == password) {
                 errorMessage = null
-                onSuccess(user.name) // Retorna el nombre real guardado en Room
+                onSuccess(user.name, user.numberPhone) // Retorna nombre y teléfono guardados en Room
             } else {
                 errorMessage = "Correo o contraseña incorrectos"
             }

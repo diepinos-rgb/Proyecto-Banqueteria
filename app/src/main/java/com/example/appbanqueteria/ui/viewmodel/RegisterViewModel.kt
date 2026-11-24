@@ -17,6 +17,7 @@ class RegisterViewModel : ViewModel() {
 
     fun onNameChanged(name: String) { uiState = uiState.copy(name = name, errorMessage = null) }
     fun onEmailChanged(email: String) { uiState = uiState.copy(email = email, errorMessage = null) }
+    fun onNumberPhoneChanged(numberPhone: String) { uiState = uiState.copy(numberPhone = numberPhone, errorMessage = null) }
     fun onPasswordChanged(password: String) { uiState = uiState.copy(password = password, errorMessage = null) }
     fun onConfirmPasswordChanged(confirmPassword: String) { uiState = uiState.copy(confirmPassword = confirmPassword, errorMessage = null) }
 
@@ -24,7 +25,7 @@ class RegisterViewModel : ViewModel() {
         val state = uiState
 
         // 1. Validar campos vacíos
-        if (state.name.isBlank() || state.email.isBlank() || state.password.isBlank()) {
+        if (state.name.isBlank() || state.email.isBlank() || state.numberPhone.isBlank() || state.password.isBlank()) {
             uiState = uiState.copy(errorMessage = "Por favor completa todos los campos.")
             return
         }
@@ -48,19 +49,25 @@ class RegisterViewModel : ViewModel() {
             return
         }
 
-        // 5. Validar longitud de contraseña (mínimo 6 caracteres)
+        // 5. Validar longitud exacta del teléfono (8 dígitos)
+        if (state.numberPhone.length != 8) {
+            uiState = uiState.copy(errorMessage = "El teléfono debe tener exactamente 8 dígitos.")
+            return
+        }
+
+        // 6. Validar longitud de contraseña (mínimo 6 caracteres)
         if (state.password.length < 6) {
             uiState = uiState.copy(errorMessage = "La contraseña debe tener al menos 6 caracteres.")
             return
         }
 
-        // 6. Validar coincidencia de contraseñas
+        // 7. Validar coincidencia de contraseñas
         if (state.password != state.confirmPassword) {
             uiState = uiState.copy(errorMessage = "Las contraseñas no coinciden.")
             return
         }
 
-        // 7. Registro en la base de datos Room
+        // 8. Registro en la base de datos Room
         viewModelScope.launch {
             val db = AppDatabase.getDatabase(context)
             val existingUser = db.usuarioDao().getUserByEmail(state.email.trim())
@@ -71,7 +78,8 @@ class RegisterViewModel : ViewModel() {
                 val newUser = UsuarioEntity(
                     name = state.name.trim(),
                     email = state.email.trim(),
-                    password = state.password
+                    password = state.password,
+                    numberPhone = "+569${state.numberPhone}"
                 )
                 db.usuarioDao().registerUser(newUser)
                 uiState = uiState.copy(errorMessage = null)
